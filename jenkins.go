@@ -10,7 +10,7 @@ type Jenkins struct {
 }
 
 func (j *Jenkins) connect() {
-	jenkins := gojenkins.CreateJenkins("http://ci.controlcho.int:8080/", "apostol.terziev", "chunjurlejka10")
+	jenkins := gojenkins.CreateJenkins("", "", "")
 	jenkins.Init()
 	build, err := jenkins.GetJob("guardian-master")
 	if err != nil {
