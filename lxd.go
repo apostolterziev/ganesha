@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"time"
+	"bytes"
 )
 
 type LXDServer struct {
@@ -57,6 +58,22 @@ func (s *LXDServer) Ping() {
 func (s *LXDServer) GetOperations() {
 	client := &http.Client{Transport: s.Transport}
 	resp, err := client.Get(s.Url + "/operations")
+	if err != nil {
+		fmt.Println(err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	if err := resp.Body.Close(); err != nil {
+		panic(err)
+	}
+	fmt.Println(string(body))
+}
+
+func (s *LXDServer) Exec(command string, container string) {
+	client := &http.Client{Transport: s.Transport}
+	resp, err := client.Post(s.Url + "/containers/" + container + "/exec", "application/json", bytes.NewBuffer([]byte(`{"command":["/usr/bin/touch /tmp/hello"]}`)))
 	if err != nil {
 		fmt.Println(err)
 	}

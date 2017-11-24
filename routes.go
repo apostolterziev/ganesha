@@ -27,9 +27,9 @@ var routes = Routes{
 		PostHook,
 	},
 	Route{
-		"GetEnvironments",
+		"GetEnvironment",
 		"GET",
-		"/environments",
+		"/environments/{name}",
 		GetEnvironments,
 	},
 	Route{
@@ -45,9 +45,33 @@ var routes = Routes{
 		GetHosts,
 	},
 	Route{
-		"GetHosts",
+		"UpdateHost",
 		"PUT",
 		"/hosts/{name}",
 		UpdateHost,
+	},
+	Route{
+		"AddProject",
+		"POST",
+		"/projects",
+		AddProject,
+	},
+	Route{
+		"GetConfig",
+		"GET",
+		"/config/{config}",
+		GetConfigHandler,
+	},
+	Route{
+		"GetAllConfig",
+		"GET",
+		"/config",
+		GetAllConfigHandler,
+	},
+	Route{
+		"SetConfig",
+		"POST",
+		"/config",
+		SetConfigHandler,
 	},
 }

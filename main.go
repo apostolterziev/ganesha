@@ -6,20 +6,31 @@ import (
 )
 
 var GlobalStorage = Storage{}
+var GlobalConfiguration map[string]string
+
+func ConfigurationsToConfig(configurations Configurations) map[string]string {
+	var result = make(map[string]string)
+	for _, configuration := range configurations {
+		result[configuration.Config] = configuration.Value
+		log.Println(configuration.Config + "\t\t\t" + configuration.Value)
+	}
+	return result
+}
 
 func main() {
-	router := NewRouter()
-	//jenkins := Jenkins{}
-	//jenkins.connect()
-	//lxd := LXDServer{
-	//	Key:  "/home/api/tmp/ca/client.key",
-	//	Cert: "/home/api/tmp/ca/client.crt",
-	//	Url:  "https://lxd-test:8443/1.0",
-	//}
-	//lxd.Init()
-	//lxd.Ping()
-	//lxd.GetOperations()
-
 	GlobalStorage.InitSchema()
+	GlobalConfiguration = ConfigurationsToConfig(GlobalStorage.GetAllConfig())
+	router := NewRouter()
+	jenkins := CI{}
+	jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
+	lxd := LXDServer{
+		Key:  "/home/api/tmp/ca/client.key",
+		Cert: "/home/api/tmp/ca/client.crt",
+		Url:  GlobalConfiguration["lxd.url"],
+	}
+	lxd.Init()
+	//lxd.Ping()
+	//lxd.Exec("touch /tmp/hello","app1")
+
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
