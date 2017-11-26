@@ -7,6 +7,7 @@ import (
 
 var GlobalStorage = Storage{}
 var GlobalConfiguration map[string]string
+var GlobalResolver = Resolver{}
 
 func ConfigurationsToConfig(configurations Configurations) map[string]string {
 	var result = make(map[string]string)
@@ -20,12 +21,17 @@ func ConfigurationsToConfig(configurations Configurations) map[string]string {
 func main() {
 	GlobalStorage.InitSchema()
 	GlobalConfiguration = ConfigurationsToConfig(GlobalStorage.GetAllConfig())
+	GlobalResolver.UpdateDatabase()
+	resolverPattern := GlobalConfiguration["resolver.pattern"]
+	if resolverPattern != "" {
+		go GlobalResolver.run(resolverPattern)
+	}
 	router := NewRouter()
 	jenkins := CI{}
 	jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
 	lxd := LXDServer{
-		Key:  "/home/api/tmp/ca/client.key",
-		Cert: "/home/api/tmp/ca/client.crt",
+		Key:  GlobalConfiguration["lxd.key"],
+		Cert: GlobalConfiguration["lxd.certificate"],
 		Url:  GlobalConfiguration["lxd.url"],
 	}
 	lxd.Init()

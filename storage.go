@@ -26,19 +26,28 @@ var schema = map[string]string{
 		"'name' VARCHAR(128) PRIMARY KEY, " +
 		"'value' VARCHAR(500) " +
 		")",
+	"Resolver": "CREATE TABLE IF NOT EXISTS 'resolver' (" +
+		"'fqdn' VARCHAR(128) PRIMARY KEY, " +
+		"'ip' VARCHAR(500) " +
+		");" +
+		"CREATE UNIQUE INDEX IF NOT EXISTS 'resolver_unique_fqdn' on resolver(fqdn)",
 }
 
 var statements = map[string]string{
-	"ReadHosts":        "SELECT name, url, status from 'lxdhosts'",
-	"AddHost":          "INSERT INTO lxdhosts(name, url, status) values(?, ?, ?)",
-	"UpdateHost":       "UPDATE lxdhosts set url=?, status=? where name=?",
-	"GetProjects":      "SELECT name, vcs_url, default_branch, job_definition from projects",
-	"AddProject":       "INSERT INTO projects(name, vcs_url, default_branch, job_definition) values (?, ?, ?, ?)",
-	"GetEnvironments":  "SELECT name, project_name, branch from 'environments' where name=?",
-	"StoreEnvironment": "INSERT INTO environments(name, project_name, branch) values(?, ?, ?)",
-	"SetConfigValue":   "INSERT OR REPLACE INTO configuration(name, value) values(?, ?)",
-	"GetConfigValue":   "SELECT value from configuration where name=?",
-	"GetAllConfig":     "SELECT name, value from configuration",
+	"ReadHosts":             "SELECT name, url, status from 'lxdhosts'",
+	"AddHost":               "INSERT INTO lxdhosts(name, url, status) values(?, ?, ?)",
+	"UpdateHost":            "UPDATE lxdhosts set url=?, status=? where name=?",
+	"GetProjects":           "SELECT name, vcs_url, default_branch, job_definition from projects",
+	"AddProject":            "INSERT INTO projects(name, vcs_url, default_branch, job_definition) values (?, ?, ?, ?)",
+	"GetEnvironments":       "SELECT name, project_name, branch from 'environments' where name=?",
+	"StoreEnvironment":      "INSERT INTO environments(name, project_name, branch) values(?, ?, ?)",
+	"SetConfigValue":        "INSERT OR REPLACE INTO configuration(name, value) values(?, ?)",
+	"GetConfigValue":        "SELECT value from configuration where name=?",
+	"GetAllConfig":          "SELECT name, value from configuration",
+	"AddResolverRecord":     "INSERT OR REPLACE INTO resolver(fqdn, ip) values(?, ?)",
+	"GetFqdnIp":             "SELECT ip from resolver where fqdn=?",
+	"GetAllResolverRecords": "SELECT fqdn, ip FROM resolver",
+	"RemoveResolverRecord":  "DELETE FROM resolver where fqdn=?",
 }
 
 type Storage struct {
@@ -102,7 +111,6 @@ func (s *Storage) GetAllConfig() Configurations {
 	return configs
 }
 
-
 func (s *Storage) SetConfig(configuration Configuration) {
 	s.preparedStatements["SetConfigValue"].Exec(configuration.Config, configuration.Value)
 }
@@ -125,6 +133,38 @@ func (s *Storage) GetEnvironments(name string) Environments {
 
 func (s *Storage) StoreEnvironment(environment *Environment) {
 	s.preparedStatements["StoreEnvironment"].Exec(environment.Name, environment.ProjectName)
+}
+
+func (s *Storage) AddResolverRecord(resolverRecord ResolverRecord) {
+	s.preparedStatements["AddResolverRecord"].Exec(resolverRecord.FQDN, resolverRecord.IP)
+}
+
+func (s *Storage) GetResolverRecord(fqdn string) ResolverRecord {
+	rows, err := s.preparedStatements["GetFqdnIp"].Query(fqdn)
+	checkErr(err)
+	if rows.Next() {
+		resolverRecord := ResolverRecord{FQDN: fqdn}
+		rows.Scan(&resolverRecord.IP)
+		return resolverRecord
+	}
+	return ResolverRecord{}
+}
+
+func (s *Storage) GetAllResolverRecords() ResolverRecords {
+	rows, err := s.preparedStatements["GetAllResolverRecords"].Query()
+	checkErr(err)
+	resolverRecords := ResolverRecords{}
+	for rows.Next() {
+		resolverRecord := ResolverRecord{}
+		rows.Scan(&resolverRecord.FQDN, &resolverRecord.IP)
+		resolverRecords = append(resolverRecords, resolverRecord)
+	}
+	return resolverRecords
+}
+
+func (s *Storage) RemoveResolverRecord(fqdn string) {
+	_, err := s.preparedStatements["RemoveResolverRecord"].Exec(fqdn)
+	checkErr(err)
 }
 
 func (s *Storage) InitSchema() {

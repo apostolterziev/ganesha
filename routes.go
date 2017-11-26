@@ -74,4 +74,28 @@ var routes = Routes{
 		"/config",
 		SetConfigHandler,
 	},
+	Route{
+		"AddResolverRecord",
+		"POST",
+		"/resolver",
+		AddResolverRecordHandler,
+	},
+	Route{
+		"GetResolverRecord",
+		"GET",
+		"/resolver/{fqdn}",
+		GetResolverRecordHandler,
+	},
+	Route{
+		"GetResolverRecords",
+		"GET",
+		"/resolver",
+		GetAllResolverRecordsHandler,
+	},
+	Route{
+		"DeleteResolverRecord",
+		"DELETE",
+		"/resolver/{fqdn}",
+		DeleteResolverRecordHandler,
+	},
 }

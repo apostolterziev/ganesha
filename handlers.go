@@ -140,3 +140,44 @@ func GetAllConfigHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 }
+
+func AddResolverRecordHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+	if err != nil {
+		panic(err)
+	}
+	if err := r.Body.Close(); err != nil {
+		panic(err)
+	}
+	var resolverRecord ResolverRecord
+	json.Unmarshal(body, &resolverRecord)
+	GlobalStorage.AddResolverRecord(resolverRecord)
+	GlobalResolver.UpdateDatabase()
+}
+
+func GetResolverRecordHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	fqdn := vars["fqdn"]
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(GlobalStorage.GetResolverRecord(fqdn)); err != nil {
+		panic(err)
+	}
+}
+
+func GetAllResolverRecordsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(GlobalStorage.GetAllResolverRecords()); err != nil {
+		panic(err)
+	}
+}
+
+func DeleteResolverRecordHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	fqdn := vars["fqdn"]
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	GlobalStorage.RemoveResolverRecord(fqdn)
+	GlobalResolver.UpdateDatabase()
+}
