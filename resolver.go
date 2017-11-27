@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/miekg/dns"
 )
@@ -24,6 +23,8 @@ func (r *Resolver) parseQuery(m *dns.Msg) {
 					m.Answer = append(m.Answer, rr)
 				}
 			}
+		default:
+			fmt.Println("Unknown query type -> " + q.Name)
 		}
 	}
 }
@@ -36,6 +37,8 @@ func (r *Resolver) handleDnsRequest(w dns.ResponseWriter, resp *dns.Msg) {
 	switch resp.Opcode {
 	case dns.OpcodeQuery:
 		r.parseQuery(m)
+	default:
+		fmt.Println("Unknown opcode -> " + string(resp.Opcode))
 	}
 
 	w.WriteMsg(m)
@@ -53,9 +56,10 @@ func (r *Resolver) run(pattern string) {
 	// attach request handler func
 	dns.HandleFunc(pattern, r.handleDnsRequest)
 	// start server
-	port := 5363
-	server := &dns.Server{Addr: ":" + strconv.Itoa(port), Net: "udp"}
-	log.Printf("Starting at %d\n", port)
+	port := GlobalConfiguration["resolver.port"]
+	listenOn := GlobalConfiguration["resolver.listen_on"]
+	server := &dns.Server{Addr: listenOn + ":" + port, Net: "udp"}
+	log.Printf("Starting at %s\n", port)
 	err := server.ListenAndServe()
 	defer server.Shutdown()
 	if err != nil {

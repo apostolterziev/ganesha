@@ -119,10 +119,10 @@ func (s *Storage) AddProject(project *Project) {
 	s.preparedStatements["AddProject"].Exec(project.Name, project.VCSUrl, project.DefaultBranch, project.JobDefinition)
 }
 
-func (s *Storage) GetEnvironments(name string) Environments {
+func (s *Storage) GetEnvironments(name string) EnvironmentSet {
 	rows, err := s.preparedStatements["GetEnvironments"].Query(name)
 	checkErr(err)
-	var environments = Environments{}
+	var environments = EnvironmentSet{}
 	for rows.Next() {
 		var environment = Environment{}
 		rows.Scan(&environment.Name, &environment.ProjectName, &environment.Branch)

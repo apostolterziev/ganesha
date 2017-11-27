@@ -29,7 +29,7 @@ type ResolverRecord struct {
 	IP   string `json:"ip"`
 }
 
-type Environments []Environment
+type EnvironmentSet []Environment
 type LxdHosts []LxdHost
 type Projects []Project
 type Configurations []Configuration

@@ -29,12 +29,12 @@ func main() {
 	router := NewRouter()
 	jenkins := CI{}
 	jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
-	lxd := LXDServer{
+	/*lxd := LXDServer{
 		Key:  GlobalConfiguration["lxd.key"],
 		Cert: GlobalConfiguration["lxd.certificate"],
 		Url:  GlobalConfiguration["lxd.url"],
 	}
-	lxd.Init()
+	lxd.Init()*/
 	//lxd.Ping()
 	//lxd.Exec("touch /tmp/hello","app1")
 
