@@ -26,9 +26,10 @@ func main() {
 	if resolverPattern != "" {
 		go GlobalResolver.run(resolverPattern)
 	}
-	router := NewRouter()
-	jenkins := CI{}
-	jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
+	if GlobalConfiguration["jenkins.url"] != "" {
+		jenkins := CI{}
+		jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
+	}
 	/*lxd := LXDServer{
 		Key:  GlobalConfiguration["lxd.key"],
 		Cert: GlobalConfiguration["lxd.certificate"],
@@ -37,6 +38,6 @@ func main() {
 	lxd.Init()*/
 	//lxd.Ping()
 	//lxd.Exec("touch /tmp/hello","app1")
-
+	router := NewRouter()
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
