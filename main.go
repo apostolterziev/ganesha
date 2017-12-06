@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 )
 
 var GlobalStorage = Storage{}
@@ -26,7 +27,7 @@ func main() {
 	if resolverPattern != "" {
 		go GlobalResolver.run(resolverPattern)
 	}
-	if GlobalConfiguration["jenkins.url"] != "" {
+	if GlobalConfiguration["jenkins.url"] != ""  && os.Args[1] == "" {
 		jenkins := CI{}
 		jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
 	}
