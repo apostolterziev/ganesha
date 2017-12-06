@@ -24,7 +24,7 @@ func main() {
 	GlobalConfiguration = ConfigurationsToConfig(GlobalStorage.GetAllConfig())
 	GlobalResolver.UpdateDatabase()
 	resolverPattern := GlobalConfiguration["resolver.pattern"]
-	if resolverPattern != "" && len(os.Args) > 1 && os.Args[1] == "" {
+	if resolverPattern != "" {
 		go GlobalResolver.run(resolverPattern)
 	}
 	if GlobalConfiguration["jenkins.url"] != ""   {

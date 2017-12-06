@@ -129,6 +129,7 @@ func SetConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var configuration Configuration
 	json.Unmarshal(body, &configuration)
 	GlobalStorage.SetConfig(configuration)
+	GlobalConfiguration = ConfigurationsToConfig(GlobalStorage.GetAllConfig())
 }
 
 func GetConfigHandler(w http.ResponseWriter, r *http.Request) {
