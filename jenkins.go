@@ -17,6 +17,7 @@ func (c *CI) connect(url string, username string, password string) {
 
 func (c *CI) updateBuild(projectName string, branch string) {
 	projects := GlobalStorage.GetProjects()
+	jobs := GlobalStorage.GetAllGroupJobs(branch)
 	var err error
 	existingView, err := c.jenkins.GetView(branch)
 	if err != nil {
@@ -38,9 +39,15 @@ func (c *CI) updateBuild(projectName string, branch string) {
 
 	for _, project := range projects {
 		jobName := project.Name + "-" + branch
-		environment := branch;
+		var environment string
+		if storedJob, ok := jobs[jobName]; ok {
+			fmt.Println(storedJob.Name)
+			environment = storedJob.Group
+		} else {
+			environment = branch
+		}
 		existingJob, err := c.jenkins.GetJob(jobName)
-		if err != nil && existingJob == nil {
+		if (err != nil && existingJob == nil) {
 			if project.Name != projectName {
 				environment = project.DefaultBranch
 			} else if existingJob == nil {
@@ -57,6 +64,16 @@ func (c *CI) updateBuild(projectName string, branch string) {
 			view.AddJob(projectJob.GetName())
 		} else {
 			fmt.Println("Job " + jobName + " already exists");
+			if cfg,_ := existingJob.GetConfig(); !strings.Contains(cfg, "<name>*/" + branch + "</name>") {
+				c.jenkins.DeleteJob(existingJob.GetName())
+				projectJobConfig := strings.Replace(project.JobDefinition, "{{environment}}", environment, -1)
+				fmt.Println(projectJobConfig)
+				projectJob, err := c.jenkins.CreateJob(projectJobConfig, jobName)
+				if err != nil {
+					panic(err)
+				}
+				view.AddJob(projectJob.GetName())
+			}
 		}
 	}
 }

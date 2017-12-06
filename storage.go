@@ -28,9 +28,15 @@ var schema = map[string]string{
 		")",
 	"Resolver": "CREATE TABLE IF NOT EXISTS 'resolver' (" +
 		"'fqdn' VARCHAR(128) PRIMARY KEY, " +
-		"'ip' VARCHAR(500) " +
+		"'ip' VARCHAR(15) " +
 		");" +
 		"CREATE UNIQUE INDEX IF NOT EXISTS 'resolver_unique_fqdn' on resolver(fqdn)",
+	"Jobs": "CREATE TABLE IF NOT EXISTS 'jobs' (" +
+		"'name' VARCHAR(128) PRIMARY KEY, " +
+		"'project' VARCHAR(128), " +
+		"'group' VARCHAR(128), " +
+		"'status' INTEGER " +
+		")",
 }
 
 var statements = map[string]string{
@@ -48,6 +54,9 @@ var statements = map[string]string{
 	"GetFqdnIp":             "SELECT ip from resolver where fqdn=?",
 	"GetAllResolverRecords": "SELECT fqdn, ip FROM resolver",
 	"RemoveResolverRecord":  "DELETE FROM resolver where fqdn=?",
+	"AddJob":                "INSERT OR REPLACE INTO jobs(name, project, 'group', status) values(?, ?, ?, ?)",
+	"RemoveJob":             "DELETE FROM jobs WHERE name=?",
+	"GetAllForGroup":        "SELECT name, project, 'group', status FROM jobs WHERE 'group'=?",
 }
 
 type Storage struct {
@@ -165,6 +174,28 @@ func (s *Storage) GetAllResolverRecords() ResolverRecords {
 func (s *Storage) RemoveResolverRecord(fqdn string) {
 	_, err := s.preparedStatements["RemoveResolverRecord"].Exec(fqdn)
 	checkErr(err)
+}
+
+func (s *Storage) AddJob(job Job) {
+	_, err := GlobalStorage.preparedStatements["AddJob"].Exec(job.Name, job.Project, job.Group, job.Status)
+	checkErr(err)
+}
+
+func (s *Storage) RemoveJob(job Job) {
+	_, err := GlobalStorage.preparedStatements["RemoveJob"].Exec(job.Name)
+	checkErr(err)
+}
+
+func (s *Storage) GetAllGroupJobs(group string) map[string]Job {
+	rows, err := s.preparedStatements["GetAllForGroup"].Query(group)
+	checkErr(err)
+	jobs := make(map[string]Job)
+	for rows.Next() {
+		job := Job{}
+		rows.Scan(&job.Name, &job.Project, &job.Group, &job.Status)
+		jobs[job.Name] = job
+	}
+	return jobs
 }
 
 func (s *Storage) InitSchema() {

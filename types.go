@@ -29,8 +29,24 @@ type ResolverRecord struct {
 	IP   string `json:"ip"`
 }
 
+type Job struct {
+	Name string
+	Project string
+	Group string
+	Status JobStatus
+
+}
+
+type JobStatus int8
+
+const (
+	JobActive JobStatus = 0
+	JobRunning JobStatus = 1
+)
+
 type EnvironmentSet []Environment
 type LxdHosts []LxdHost
 type Projects []Project
 type Configurations []Configuration
 type ResolverRecords []ResolverRecord
+type Jobs []Job

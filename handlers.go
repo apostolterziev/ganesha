@@ -33,10 +33,18 @@ func PostHook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Project->" + project)
 	fmt.Println("Branch->" + branch)
 	jenkins := CI{}
+	job := Job{
+		Name:    project + "-" + branch,
+		Project: project,
+		Group:   branch,
+		Status:  JobActive,
+	}
 	jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
 	if m["checkout_sha"] == nil { // Branch deleted
+		GlobalStorage.RemoveJob(job)
 		jenkins.removeBuild(project, branch)
 	} else {
+		GlobalStorage.AddJob(job)
 		jenkins.updateBuild(project, branch)
 	}
 }
