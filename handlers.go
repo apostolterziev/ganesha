@@ -32,20 +32,18 @@ func PostHook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(string(body))
 	fmt.Println("Project->" + project)
 	fmt.Println("Branch->" + branch)
-	jenkins := CI{}
 	job := Job{
 		Name:    project + "-" + branch,
 		Project: project,
 		Group:   branch,
 		Status:  JobActive,
 	}
-	jenkins.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
 	if m["checkout_sha"] == nil { // Branch deleted
 		GlobalStorage.RemoveJob(job)
-		jenkins.removeBuild(project, branch)
+		GlobalCI.removeBuild(project, branch)
 	} else {
 		GlobalStorage.AddJob(job)
-		jenkins.updateBuild(project, branch)
+		GlobalCI.updateBuild(project, branch)
 	}
 }
 
@@ -129,7 +127,7 @@ func SetConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var configuration Configuration
 	json.Unmarshal(body, &configuration)
 	GlobalStorage.SetConfig(configuration)
-	GlobalConfiguration = ConfigurationsToConfig(GlobalStorage.GetAllConfig())
+	GlobalConfiguration = configurationsToConfig(GlobalStorage.GetAllConfig())
 }
 
 func GetConfigHandler(w http.ResponseWriter, r *http.Request) {
@@ -159,7 +157,9 @@ func AddResolverRecordHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	var resolverRecord ResolverRecord
-	json.Unmarshal(body, &resolverRecord)
+	if err := json.Unmarshal(body, &resolverRecord); err != nil {
+		fmt.Println("Cannot parse " + string(body))
+	}
 	GlobalStorage.AddResolverRecord(resolverRecord)
 	GlobalResolver.UpdateDatabase()
 }

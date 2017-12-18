@@ -1,5 +1,14 @@
 package main
 
+type CommandLineConfiguration struct {
+	LinkJira *bool
+	AuthCode *string
+	DatabaseFile *string
+	ProcessName *string
+	ConfigName *string
+	ConfigValue *string
+}
+
 type Environment struct {
 	Name        string `json:"name"`
 	ProjectName string `json:"project_name"`
@@ -30,17 +39,25 @@ type ResolverRecord struct {
 }
 
 type Job struct {
-	Name string
+	Name    string
 	Project string
-	Group string
-	Status JobStatus
+	Group   string
+	Status  JobStatus
+}
 
+type OauthConfiguration struct {
+	URL              string
+	AuthorizationURL string
+	RequestSecret    string
+	RequestToken     string
+	Token            string
+	TokenSecret      string
 }
 
 type JobStatus int8
 
 const (
-	JobActive JobStatus = 0
+	JobActive  JobStatus = 0
 	JobRunning JobStatus = 1
 )
 

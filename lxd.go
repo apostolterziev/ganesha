@@ -1,20 +1,16 @@
 package main
 
 import (
-	"crypto/tls"
+	"github.com/lxc/lxd/client"
 	"fmt"
-	"net/http"
-	"io/ioutil"
-	"log"
-	"time"
-	"bytes"
 )
 
 type LXDServer struct {
-	Name      string
-	Key, Cert string
-	Url       string
-	Transport *http.Transport
+	Name       string
+	Key        string
+	Cert       string
+	ServerCert string
+	Url        string
 }
 
 type LXDPool struct {
@@ -22,67 +18,22 @@ type LXDPool struct {
 }
 
 func (s *LXDServer) Init() {
-	cer, err := tls.LoadX509KeyPair(s.Cert, s.Key)
+	connectionArgs := lxd.ConnectionArgs{
+		TLSClientCert:      s.Cert,
+		TLSClientKey:       s.Key,
+		TLSServerCert:      s.ServerCert,
+	}
+	containerServer, err := lxd.ConnectLXD(s.Url, &connectionArgs)
 	if err != nil {
-		log.Println(err)
-		panic(err)
+		fmt.Println("Cannot connect to lxd server " + s.Url)
 	}
-
-	s.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			Certificates:       []tls.Certificate{cer},
-		},
-		MaxIdleConns:2,
-		IdleConnTimeout: 3* time.Second,
-	}
-}
-
-func (s *LXDServer) Ping() {
-
-	client := &http.Client{Transport: s.Transport}
-	resp, err := client.Get(s.Url)
-	if err != nil {
-		fmt.Println(err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
+	snapshot, etag, err := containerServer.GetContainerSnapshot("app1", "lxd-base")
+	fmt.Println(snapshot.Name + "\t" + etag)
+	res, err := containerServer.GetServerResources();
+	fmt.Println(res.Memory.Total/1024/1024)
+	op, err := containerServer.CopyContainerSnapshot(containerServer, *snapshot, &lxd.ContainerSnapshotCopyArgs{Name: "gugi"})
 	if err != nil {
 		panic(err)
 	}
-	if err := resp.Body.Close(); err != nil {
-		panic(err)
-	}
-	fmt.Println(string(body))
-}
-
-func (s *LXDServer) GetOperations() {
-	client := &http.Client{Transport: s.Transport}
-	resp, err := client.Get(s.Url + "/operations")
-	if err != nil {
-		fmt.Println(err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	if err := resp.Body.Close(); err != nil {
-		panic(err)
-	}
-	fmt.Println(string(body))
-}
-
-func (s *LXDServer) Exec(command string, container string) {
-	client := &http.Client{Transport: s.Transport}
-	resp, err := client.Post(s.Url + "/containers/" + container + "/exec", "application/json", bytes.NewBuffer([]byte(`{"command":["/usr/bin/touch /tmp/hello"]}`)))
-	if err != nil {
-		fmt.Println(err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	if err := resp.Body.Close(); err != nil {
-		panic(err)
-	}
-	fmt.Println(string(body))
+	op.Wait()
 }

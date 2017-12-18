@@ -37,6 +37,14 @@ var schema = map[string]string{
 		"'group' VARCHAR(128), " +
 		"'status' INTEGER " +
 		")",
+	"OAuth1": "CREATE TABLE IF NOT EXISTS 'oauth1' (" +
+		"'url' VARCHAR(1024) PRIMARY KEY, " +
+		"'authorization_url' VARCHAR(1024) DEFAULT '', " +
+		"'request_secret' VARCHAR(1024) DEFAULT '', " +
+		"'request_token' VARCHAR(1024) DEFAULT '', " +
+		"'token' VARCHAR(1024) DEFAULT '', " +
+		"'token_secret' VARCHAR(1024) DEFAULT '' " +
+		")",
 }
 
 var statements = map[string]string{
@@ -57,6 +65,9 @@ var statements = map[string]string{
 	"AddJob":                "INSERT OR REPLACE INTO jobs(name, project, 'group', status) values(?, ?, ?, ?)",
 	"RemoveJob":             "DELETE FROM jobs WHERE name=?",
 	"GetAllForGroup":        "SELECT name, project, 'group', status FROM jobs WHERE 'group'=?",
+	"AddAuthorizationUrl":   "INSERT OR REPLACE INTO oauth1('url', 'authorization_url', 'request_secret', request_token) values(?, ?, ?, ?)",
+	"StoreToken":            "INSERT OR REPLACE INTO oauth1('url', 'token', 'token_secret') values(?, ?, ?)",
+	"GetOauthConfiguration": "SELECT url, authorization_url, request_secret, request_token, token, token_secret FROM oauth1 WHERE url=?",
 }
 
 type Storage struct {
@@ -151,12 +162,13 @@ func (s *Storage) AddResolverRecord(resolverRecord ResolverRecord) {
 func (s *Storage) GetResolverRecord(fqdn string) ResolverRecord {
 	rows, err := s.preparedStatements["GetFqdnIp"].Query(fqdn)
 	checkErr(err)
+	var resolverRecord ResolverRecord
 	if rows.Next() {
-		resolverRecord := ResolverRecord{FQDN: fqdn}
+		resolverRecord = ResolverRecord{FQDN: fqdn}
 		rows.Scan(&resolverRecord.IP)
 		return resolverRecord
 	}
-	return ResolverRecord{}
+	return resolverRecord
 }
 
 func (s *Storage) GetAllResolverRecords() ResolverRecords {
@@ -198,8 +210,43 @@ func (s *Storage) GetAllGroupJobs(group string) map[string]Job {
 	return jobs
 }
 
-func (s *Storage) InitSchema() {
-	s.Open()
+func (s *Storage) readOauthConfiguration(url string) OauthConfiguration {
+	statement := s.preparedStatements["GetOauthConfiguration"]
+	//defer statement.Close()
+	rows, err := statement.Query(url)
+	checkErr(err)
+	defer rows.Close()
+	var oauthConfiguration OauthConfiguration
+	if rows.Next() {
+		oauthConfiguration = OauthConfiguration{}
+		rows.Scan(&oauthConfiguration.URL, &oauthConfiguration.AuthorizationURL, &oauthConfiguration.RequestSecret,
+			&oauthConfiguration.RequestToken, &oauthConfiguration.Token, &oauthConfiguration.TokenSecret)
+	}
+	return oauthConfiguration
+}
+
+func (s *Storage) AddAuthorizationUrl(oauthConfiguration OauthConfiguration) {
+	statement := GlobalStorage.preparedStatements["AddAuthorizationUrl"]
+	//defer statement.Close()
+
+	_, err := statement.Exec(oauthConfiguration.URL,
+		oauthConfiguration.AuthorizationURL,
+		oauthConfiguration.RequestSecret,
+		oauthConfiguration.RequestToken)
+	checkErr(err)
+}
+
+func (s *Storage) StoreToken(oauthConfiguration OauthConfiguration) {
+	statement := GlobalStorage.preparedStatements["StoreToken"]
+	//defer statement.Close()
+	_, err := statement.Exec(oauthConfiguration.URL,
+		oauthConfiguration.Token,
+		oauthConfiguration.TokenSecret)
+	checkErr(err)
+}
+
+func (s *Storage) InitSchema(database string) {
+	s.Open(database)
 
 	for _, sql := range schema {
 		_, err := s.db.Exec(sql)
@@ -214,12 +261,12 @@ func (s *Storage) InitSchema() {
 	}
 }
 
-func (s *Storage) Open() {
+func (s *Storage) Open(database string) {
 	if s.db != nil {
 		return
 	}
 	var err error
-	s.db, err = sql.Open("sqlite3", "./ganesha.db")
+	s.db, err = sql.Open("sqlite3", database)
 	checkErr(err)
 
 }
