@@ -45,6 +45,7 @@ func main() {
 	GlobalStorage.InitSchema(*GlobalFlags.DatabaseFile)
 	GlobalConfiguration = configurationsToConfig(GlobalStorage.GetAllConfig())
 
+	// Set a confing from the command line and exit
 	if *GlobalFlags.ConfigName != "" && *GlobalFlags.ConfigValue != "" {
 		GlobalStorage.SetConfig(Configuration{
 			Config: *GlobalFlags.ConfigName,
@@ -56,6 +57,7 @@ func main() {
 	taskProvider := NewTaskProvider(GlobalConfiguration["jira.key"],
 		GlobalConfiguration["jira.url"],
 		GlobalConfiguration["jira.consumer_key"])
+
 	if *GlobalFlags.LinkJira {
 		authorizationUrl := taskProvider.storeAuthorizationUrl()
 		fmt.Println(authorizationUrl)
@@ -66,6 +68,8 @@ func main() {
 		taskProvider.storeAccessToken(*GlobalFlags.AuthCode)
 		return
 	}
+
+	//Work as a git hook
 	if strings.HasSuffix(*GlobalFlags.ProcessName, "commit-msg") {
 		commitMessage := readFile(os.Args[1])
 		issueId := extractIssueFromMessage(commitMessage)
@@ -87,11 +91,14 @@ func main() {
 		fmt.Println(issue.Fields.Summary)
 		os.Exit(0)
 	}
+
+	// Start a DNS server in a separate go-routine
 	resolverPattern := GlobalConfiguration["resolver.pattern"]
 	GlobalResolver.UpdateDatabase()
 	if resolverPattern != "" {
 		go GlobalResolver.run(resolverPattern)
 	}
+
 	if GlobalConfiguration["jenkins.url"] != "" {
 		GlobalCI.connect(GlobalConfiguration["jenkins.url"], GlobalConfiguration["jenkins.username"], GlobalConfiguration["jenkins.password"])
 	}
@@ -105,5 +112,8 @@ func main() {
 	//lxd.Ping()
 	//lxd.Exec("touch /tmp/hello","app1")
 	router := NewRouter()
-	log.Fatal(http.ListenAndServe(":8080", router))
+	err := http.ListenAndServe(":8080", router)
+	if (err != nil) {
+		log.Fatal(err)
+	}
 }

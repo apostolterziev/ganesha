@@ -56,6 +56,18 @@ type OauthConfiguration struct {
 
 type JobStatus int8
 
+type LXDServer struct {
+	Name       string
+	Key        string
+	Cert       string
+	ServerCert string
+	Url        string
+}
+
+type LXDPool struct {
+	Pool map[string]*LXDServer
+}
+
 const (
 	JobActive  JobStatus = 0
 	JobRunning JobStatus = 1
